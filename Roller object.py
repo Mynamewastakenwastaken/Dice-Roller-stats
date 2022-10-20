@@ -1,12 +1,15 @@
 import random
+import matplotlib.pyplot as plt
 
 
 class Settings:
 
-    def __init__(self, max_roll=100000, stalwart_stressed=0, crit_value=1):       #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=1000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=6):       #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.stalwart_stressed = stalwart_stressed
         self.crit_value = crit_value
+        self.graph_start = graph_start
+        self.graph_end = graph_end
 
 
 class Skills:
@@ -65,7 +68,7 @@ class Dice(object):
         if Dice.prepare_check != 1:
             Dice.prepare_check = 1
             Skills.prepare()
-            config.stalwart_stressed = 0
+            Results.prepare()
             Dice.crit_count = 0
             Dice.check_pool.clear()
             Dice.dice_pool_copy = Dice.dice_pool.copy()             #making a copy to prevent errors
@@ -75,7 +78,7 @@ class Dice(object):
             self.weight = sum(self.faces)
             Dice.check_pool.append(self)
             Dice.dice_pool_copy.remove(self)
-            if self.state > config.stalwart_stressed:
+            if self.state > config.stalwart_stressed:               #!!!!!!maybe remove?!!!!!!!
                 config.stalwart_stressed = self.state
 
     def check(self):
@@ -86,6 +89,7 @@ class Dice(object):
                 Dice.function_check = 1
                 Dice.sub_total = 0
                 Dice.skill_count = 0
+                Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
                 Dice.value = 999
@@ -100,6 +104,7 @@ class Dice(object):
                 Dice.function_check = 1
                 Dice.sub_total = 0
                 Dice.skill_count = 0
+                Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
                 Dice.value = -999
@@ -112,14 +117,13 @@ class Dice(object):
 
     def check_result(self):
         if Dice.value == -999:
-            Results.totalsum += 0
-            Results.tally.append(0)
+            Results.misses += 1
         elif Dice.value == 999:
             self.crit_resolver()
         else:
             if (Dice.value % 1) != 0:
                 temp = (Dice.value % 1)
-                Dice.temp_skill.append(temp * 10)
+                Dice.skill_count += (temp * 10)
                 Dice.sub_total += (Dice.value - temp)
             else:
                 Dice.sub_total += Dice.value
@@ -129,68 +133,108 @@ class Dice(object):
             Dice.crit_count += 1
             Dice.sub_total += self.crit_value
             Dice.value = random.choice(self.faces)
+        if Dice.crit_count > result.crit_chain:
+            result.crit_chain = Dice.crit_count
         if Dice.value == -999:
             Dice.sub_total += 0
         else:
             if (Dice.value % 1) != 0:
                 temp = (Dice.value % 1)
-                Dice.temp_skill.append(temp * 10)
+                Dice.skill_count += (temp * 10)
                 Dice.sub_total += (Dice.value - temp)
             else:
                 Dice.sub_total += Dice.value
 
-
     def roll(self):
-        Dice.temp_skill.clear()
-        Dice.temp_roll.clear()
-        for d in range(0, self.amount):
-            face = random.choice(self.faces)
-            if (face % 1) != 0:
-                temp = (face % 1)
-                Dice.temp_skill.append(temp * 10)
-                Dice.temp_roll.append(face - temp)
-            else:
-                Dice.temp_roll.append(face - temp)
-        self.state_resolver()
+        for y in range (-1, Dice.crit_count):
+            Dice.temp_roll.clear()
+            for d in range(0, self.amount):
+                Dice.temp_roll.append(random.choice(self.faces))
+            self.state_resolver()
 
     def state_resolver(self):
         if self.state == 0:
-            Dice.skill_count += sum(Dice.temp_skill)
-            Dice.sub_total += sum(Dice.temp_roll)
+            for x in Dice.temp_roll:
+                if (x % 1) != 0:
+                    temp = (x % 1)
+                    Dice.skill_count += (temp * 10)
+                    Dice.sub_total += (x - temp)
+                else:
+                    Dice.sub_total += x
         #else:
             #sum/min/max
 
+    @classmethod
+    def roll_results(cls):
+        if int(Dice.sub_total) not in Results.tally:
+            Results.tally[int(Dice.sub_total)] = 0
+        Results.tally[int(Dice.sub_total)] += 1
+        result.totalsum += Dice.sub_total
 
-
-    #@classmethod
-    #def roll_results(cls):
-        #for Dice.skill_count != 0:
-
-        #Dice.function_check = 0
 
 class Results:
-    tally = []
-    totalsum = 0
+    tally = {}
+    bar_dict = {}
+    misses = 0
+    def __init__(self, totalsum=0, crit_chain=0, crit_count=0):
+        self.totalsum = totalsum
+        self.crit_chain = crit_chain
+        self.crit_count = crit_count
+
+    @classmethod
+    def prepare(cls):
+        for i in range(config.graph_start, config.graph_end+1):
+            result.bar_dict[i] = 0
+    def plot_points(self):
+        for x in result.bar_dict:
+            for y in result.tally.keys():
+                if y >= x:
+                    result.bar_dict[x] += result.tally[y]
+            result.bar_dict[x] = (result.bar_dict[x]/config.max_roll)*100
+        if config.graph_start <= 0:
+            result.bar_dict[0] = (result.misses/config.max_roll)*100
+
 
 
 
 config = Settings()
+result = Results()
 
-skill1 = Skills(1, 0)
-skill2 = Skills(2, 3)
+#cost=0, damage=0, repeat=0)
+skill1 = Skills(1, 1, 1)
+skill2 = Skills(2, 0)
 skill3 = Skills(3, 0)
 skill4 = Skills(4, 0)
 
-die2 = Dice([1, 1, 1, 2, 2, 3])
-die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])
-die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
-die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1)
+#faces, primary=0, crit_value=1, state=0, amount=1, weight=0
+die1 = Dice([-999, 1, 1, 2, 1.1, 3], 1)
+die2 = Dice([0, 1, 1, 1, 2, 2])
+#die3 = Dice([1, 1, 1, 2, 2, 3])
+#die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
-print(len(Dice.dice_pool))
+
 for x in Dice.dice_pool:
     Dice.prepare(x)
 copy = sorted(Dice.check_pool, key=lambda x: x.weight, reverse=True)
 Dice.check_pool = copy
+Dice.dice_pool = Dice.dice_pool_copy
 for i in range(0, config.max_roll):
+    Dice.function_check = 0
     for x in Dice.check_pool:
         Dice.check(x)
+    for x in Dice.s_s:
+        Dice.check_result(x)
+        if Dice.value == -999:
+            continue
+        else:
+            for x in Dice.dice_pool:
+                Dice.roll(x)
+            for x in Skills.skill_pool:
+                Skills.skill_spend(x)
+            Dice.roll_results()
+result.plot_points()
+print(result.bar_dict)
+print(result.tally)
+print(sum(result.tally.values()))
+#plt.bar(*zip(*Results.bar_dict.items()))
+#plt.show()
