@@ -1,10 +1,11 @@
 import random
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class Settings:
 
-    def __init__(self, max_roll=1000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=6):       #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=10000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=6):       #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.stalwart_stressed = stalwart_stressed
         self.crit_value = crit_value
@@ -34,7 +35,6 @@ class Skills:
                 while self.cost <= Dice.skill_count:
                     Dice.sub_total += self.damage
                     Dice.skill_count -= self.cost
-
 
     @classmethod
     def prepare(cls):
@@ -119,7 +119,22 @@ class Dice(object):
         if Dice.value == -999:
             Results.misses += 1
         elif Dice.value == 999:
-            self.crit_resolver()
+            temp = Dice.value
+            while temp == 999:
+                Dice.crit_count += 1
+                Dice.sub_total += self.crit_value
+                temp = random.choice(self.faces)
+            if Dice.crit_count > result.crit_chain:
+                result.crit_chain = Dice.crit_count
+            if temp == -999:
+                Dice.sub_total += 0
+            else:
+                if (temp % 1) != 0:
+                    temp2 = (temp % 1)
+                    Dice.skill_count += (temp2 * 10)
+                    Dice.sub_total += (temp - temp2)
+                else:
+                    Dice.sub_total += temp
         else:
             if (Dice.value % 1) != 0:
                 temp = (Dice.value % 1)
@@ -128,22 +143,7 @@ class Dice(object):
             else:
                 Dice.sub_total += Dice.value
 
-    def crit_resolver(self):
-        while Dice.value == 999:
-            Dice.crit_count += 1
-            Dice.sub_total += self.crit_value
-            Dice.value = random.choice(self.faces)
-        if Dice.crit_count > result.crit_chain:
-            result.crit_chain = Dice.crit_count
-        if Dice.value == -999:
-            Dice.sub_total += 0
-        else:
-            if (Dice.value % 1) != 0:
-                temp = (Dice.value % 1)
-                Dice.skill_count += (temp * 10)
-                Dice.sub_total += (Dice.value - temp)
-            else:
-                Dice.sub_total += Dice.value
+
 
     def roll(self):
         for y in range (-1, Dice.crit_count):
@@ -153,7 +153,7 @@ class Dice(object):
             self.state_resolver()
 
     def state_resolver(self):
-        if self.state == 0:
+        if self.state == 0:                     #sum of all rolled values
             for x in Dice.temp_roll:
                 if (x % 1) != 0:
                     temp = (x % 1)
@@ -190,9 +190,29 @@ class Results:
             for y in result.tally.keys():
                 if y >= x:
                     result.bar_dict[x] += result.tally[y]
-            result.bar_dict[x] = (result.bar_dict[x]/config.max_roll)*100
+            result.bar_dict[x] = round((result.bar_dict[x]/config.max_roll)*100, 2)
         if config.graph_start <= 0:
-            result.bar_dict[0] = (result.misses/config.max_roll)*100
+            result.bar_dict[0] = round((result.misses/config.max_roll)*100, 2)
+    def graph(self):
+        percentage = result.bar_dict.values()
+        damage = result.bar_dict.keys()
+        x = np.arange(len(damage))
+        width = 0.8
+        fig, ax = plt.subplots()
+        ax.set_ylabel('% chance')
+        ax.set_xlabel('n Damage or more')
+        ax.set_title('Damage chart')
+        ax.set_xticks(x, damage)
+        ax.set_xticklabels(result.bar_dict.keys())
+        pps = ax.bar(x, percentage, width, label='% chance')
+        for p in pps:
+            height = p.get_height()
+            ax.annotate('{}'.format(height),
+                        xy=(p.get_x() + p.get_width() / 2, height),
+                        xytext=(0, 0),  # 3 points vertical offset
+                        textcoords="offset points",
+                        ha='center', va='bottom')
+        plt.show()
 
 
 
@@ -201,14 +221,14 @@ config = Settings()
 result = Results()
 
 #cost=0, damage=0, repeat=0)
-skill1 = Skills(1, 1, 1)
-skill2 = Skills(2, 0)
+skill1 = Skills(1, 0)
+skill2 = Skills(2, 4)
 skill3 = Skills(3, 0)
 skill4 = Skills(4, 0)
 
 #faces, primary=0, crit_value=1, state=0, amount=1, weight=0
-die1 = Dice([-999, 1, 1, 2, 1.1, 3], 1)
-die2 = Dice([0, 1, 1, 1, 2, 2])
+die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1)
+die2 = Dice([0, 0, 0, 0.1, 1.1, 0.2])
 #die3 = Dice([1, 1, 1, 2, 2, 3])
 #die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
@@ -224,17 +244,11 @@ for i in range(0, config.max_roll):
         Dice.check(x)
     for x in Dice.s_s:
         Dice.check_result(x)
-        if Dice.value == -999:
-            continue
-        else:
-            for x in Dice.dice_pool:
-                Dice.roll(x)
-            for x in Skills.skill_pool:
-                Skills.skill_spend(x)
-            Dice.roll_results()
+    if Dice.value != -999:
+        for x in Dice.dice_pool:
+            Dice.roll(x)
+        for x in Skills.skill_pool:
+            Skills.skill_spend(x)
+        Dice.roll_results()
 result.plot_points()
-print(result.bar_dict)
-print(result.tally)
-print(sum(result.tally.values()))
-#plt.bar(*zip(*Results.bar_dict.items()))
-#plt.show()
+result.graph()

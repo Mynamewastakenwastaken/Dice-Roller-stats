@@ -14,16 +14,16 @@ skill_point_total = 0
 skill_floor_count = 0
 
 stalwart_stressed = 0               #stawart = 1, stressed = 2 supersress = 3
-damage_floor = 4                    #the chance to get n or higher
+damage_floor = 2                    #the chance to get n or higher
 skill_floor = 3
-skill_damage1 = 1
-skill_damage2 = 0
-skill_damage3 = 0
-skill_damage4 = 0
+skill_damage1 = 0
+skill_damage2 = 4
+skill_damage3 = 6
+skill_damage4 = 8
 
 a_die = [-1, 1, 1, 2, 1.1, 6]               #define dice values, 0.1 = skill, -1 = miss, 6 = crit. ONLY a_die can crit!
-b_die = [0, 0, 0, 0, 0, 0]                #[-1, 1, 1, 2, 2, 6]    [0, 1, 1, 1, 2, 2]      [1, 1, 1, 2, 2, 3]
-c_die = [0, 1, 1, 1, 2, 2]                 #[0, 0, 0, 0.1, 1.1, 0.2]     [0, 1, 1, 2, 2, 3]    [0, 1, 1.1, 0.1, 0.2, 0.2]
+b_die = [0, 0, 0, 0.1, 1.1, 0.2]                #[-1, 1, 1, 2, 2, 6]    [0, 1, 1, 1, 2, 2]      [1, 1, 1, 2, 2, 3]
+c_die = [0, 0, 0, 0, 0, 0]                 #[0, 0, 0, 0.1, 1.1, 0.2]     [0, 1, 1, 2, 2, 3]    [0, 1, 1.1, 0.1, 0.2, 0.2]
 stress_die = [-1, -1, -1, 2, 1.1, 6]        #[0, 0, 0, 0, 0, 0]     [-1, 0, 0, 0, 1, 6]
 for i in range(0, rolls):
     crit_count = 0
