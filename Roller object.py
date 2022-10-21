@@ -5,7 +5,7 @@ import numpy as np
 
 class Settings:
 
-    def __init__(self, max_roll=10000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=6):       #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=100000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=10):       #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.stalwart_stressed = stalwart_stressed
         self.crit_value = crit_value
@@ -119,22 +119,7 @@ class Dice(object):
         if Dice.value == -999:
             Results.misses += 1
         elif Dice.value == 999:
-            temp = Dice.value
-            while temp == 999:
-                Dice.crit_count += 1
-                Dice.sub_total += self.crit_value
-                temp = random.choice(self.faces)
-            if Dice.crit_count > result.crit_chain:
-                result.crit_chain = Dice.crit_count
-            if temp == -999:
-                Dice.sub_total += 0
-            else:
-                if (temp % 1) != 0:
-                    temp2 = (temp % 1)
-                    Dice.skill_count += (temp2 * 10)
-                    Dice.sub_total += (temp - temp2)
-                else:
-                    Dice.sub_total += temp
+            self.crit_resolver()
         else:
             if (Dice.value % 1) != 0:
                 temp = (Dice.value % 1)
@@ -163,6 +148,23 @@ class Dice(object):
                     Dice.sub_total += x
         #else:
             #sum/min/max
+    def crit_resolver(self):
+        temp = Dice.value
+        while temp == 999:
+            Dice.crit_count += 1
+            Dice.sub_total += self.crit_value
+            temp = random.choice(self.faces)
+        if Dice.crit_count > result.crit_chain:
+            result.crit_chain = Dice.crit_count
+        if temp == -999:
+            Dice.sub_total += 0
+        else:
+            if (temp % 1) != 0:
+                temp2 = (temp % 1)
+                Dice.skill_count += (temp2 * 10)
+                Dice.sub_total += (temp - temp2)
+            else:
+                Dice.sub_total += temp
 
     @classmethod
     def roll_results(cls):
@@ -201,7 +203,7 @@ class Results:
         fig, ax = plt.subplots()
         ax.set_ylabel('% chance')
         ax.set_xlabel('n Damage or more')
-        ax.set_title('Damage chart')
+        ax.set_title('Phys A+C damage chart')
         ax.set_xticks(x, damage)
         ax.set_xticklabels(result.bar_dict.keys())
         pps = ax.bar(x, percentage, width, label='% chance')
@@ -216,21 +218,21 @@ class Results:
 
 
 
-
-config = Settings()
+#max_roll=100000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=10
+config = Settings(100000, 1)
 result = Results()
 
 #cost=0, damage=0, repeat=0)
-skill1 = Skills(1, 0)
-skill2 = Skills(2, 4)
+skill1 = Skills(1, 1, 1)
+skill2 = Skills(2, 0)
 skill3 = Skills(3, 0)
 skill4 = Skills(4, 0)
 
 #faces, primary=0, crit_value=1, state=0, amount=1, weight=0
-die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1)
-die2 = Dice([0, 0, 0, 0.1, 1.1, 0.2])
-#die3 = Dice([1, 1, 1, 2, 2, 3])
-#die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
+die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1)           #attack die A: [-1, 1, 1, 2, 2, 6]
+die2 = Dice([1, 1, 1, 2, 2, 3])                     #phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
+die3 = Dice([1, 1, 1, 2, 2, 3])                    #mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
+die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
 
 for x in Dice.dice_pool:
