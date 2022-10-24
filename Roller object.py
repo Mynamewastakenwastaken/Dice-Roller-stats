@@ -5,7 +5,7 @@ import numpy as np
 
 class Settings:
 
-    def __init__(self, max_roll=100000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=10):       #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=100, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=10):       #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.stalwart_stressed = stalwart_stressed
         self.crit_value = crit_value
@@ -16,10 +16,12 @@ class Settings:
 class Skills:
     skill_pool = []
 
-    def __init__(self, cost=0, damage=0, repeat=0):             #0=no repeats, 1 is infinite
-        self.cost = cost
+    def __init__(self, cost=0, damage=0, repeat=0, dependant=0, initiator=0):
+        self.cost = cost        #0=no repeats, 1 is infinite, if dependant=1, then only activates via initiator
         self.damage = damage
         self.repeat = repeat
+        self.dependant = dependant
+        self.initiator = initiator
         Skills.skill_pool.append(self)
 
     def skill_spend(self):
@@ -37,8 +39,8 @@ class Skills:
                     Dice.skill_count -= self.cost
 
     @classmethod
-    def prepare(cls):
-        copy = sorted(Skills.skill_pool, key=lambda x: x.cost, reverse=True)
+    def prepare(cls):               #sorting skill pool so more expensive skills are used first
+        copy = sorted(Skills.skill_pool, key=lambda x: x.damage, reverse=True)
         Skills.skill_pool = copy
 
 class Dice(object):
@@ -46,7 +48,6 @@ class Dice(object):
     crit_count = 0
     skill_count = 0
     temp_roll = []
-    temp_skill = []
     dice_pool = []
     dice_pool_copy = []
     check_pool = []
@@ -67,11 +68,11 @@ class Dice(object):
     def prepare(self):
         if Dice.prepare_check != 1:
             Dice.prepare_check = 1
-            Skills.prepare()
+            Skills.prepare()                                   #also preparing skills and results
             Results.prepare()
             Dice.crit_count = 0
             Dice.check_pool.clear()
-            Dice.dice_pool_copy = Dice.dice_pool.copy()             #making a copy to prevent errors
+            Dice.dice_pool_copy = Dice.dice_pool.copy()        #making a copy to prevent errors
         if self.primary != 1:
             return
         else:
@@ -203,7 +204,7 @@ class Results:
         fig, ax = plt.subplots()
         ax.set_ylabel('% chance')
         ax.set_xlabel('n Damage or more')
-        ax.set_title('Phys A+C damage chart')
+        ax.set_title('Damage chart')
         ax.set_xticks(x, damage)
         ax.set_xticklabels(result.bar_dict.keys())
         pps = ax.bar(x, percentage, width, label='% chance')
@@ -219,20 +220,22 @@ class Results:
 
 
 #max_roll=100000, stalwart_stressed=0, crit_value=1, graph_start=0, graph_end=10
-config = Settings(100000, 1)
+config = Settings(100000, 0)
 result = Results()
 
-#cost=0, damage=0, repeat=0)
-skill1 = Skills(1, 1, 1)
-skill2 = Skills(2, 0)
+#cost=0, damage=0, repeat=0, dependant=0, initiator=0
+skill5 = Skills(5, 0)
+skill1 = Skills(1, 2, 1)
+skill2 = Skills(2, 4)
 skill3 = Skills(3, 0)
 skill4 = Skills(4, 0)
 
+
 #faces, primary=0, crit_value=1, state=0, amount=1, weight=0
-die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1)           #attack die A: [-1, 1, 1, 2, 2, 6]
-die2 = Dice([1, 1, 1, 2, 2, 3])                     #phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
-die3 = Dice([1, 1, 1, 2, 2, 3])                    #mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
-die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
+die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 1, 0, 1)           #attack die A: [-1, 1, 1, 2, 2, 6]
+die2 = Dice([0, 1, 1.1, 0.1, 0.2, 0.2])                     #phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
+#die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])                    #mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
+#die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
 
 for x in Dice.dice_pool:
@@ -240,6 +243,7 @@ for x in Dice.dice_pool:
 copy = sorted(Dice.check_pool, key=lambda x: x.weight, reverse=True)
 Dice.check_pool = copy
 Dice.dice_pool = Dice.dice_pool_copy
+print(Skills.skill_pool)
 for i in range(0, config.max_roll):
     Dice.function_check = 0
     for x in Dice.check_pool:
@@ -252,5 +256,6 @@ for i in range(0, config.max_roll):
         for x in Skills.skill_pool:
             Skills.skill_spend(x)
         Dice.roll_results()
+Dice.prepare_check = 0
 result.plot_points()
 result.graph()
