@@ -95,6 +95,30 @@ class Dice(object):
             Dice.check_pool.append(self)
             Dice.dice_pool_copy.remove(self)
 
+    @classmethod
+    def they_see_me_rollin(cls):
+        for i in range(0, config.max_roll):
+            Dice.function_check = 0
+            Skills.depend = 0
+            Dice.crit_count = 0
+            if Dice.check_pool:
+                for x in Dice.check_pool:
+                    Dice.check(x)
+                for x in Dice.s_s:
+                    Dice.check_result(x)
+                if Dice.value != -999:
+                    Dice.roll_lock = Dice.crit_count  # locking in amount of rolls
+                    for x in Dice.dice_pool:
+                        Dice.roll(x)
+                    for x in Skills.skill_pool:
+                        Skills.skill_spend(x)
+                    Dice.roll_results()
+            else:
+                for x in Dice.dice_pool:
+                    Dice.roll(x)
+                for x in Skills.skill_pool:
+                    Skills.skill_spend(x)
+                Dice.roll_results()
     def check(self):                                #rolling primary dice
         if self.primary != 1:
             return
@@ -333,29 +357,8 @@ for x in Dice.dice_pool:
 copy = sorted(Dice.check_pool, key=lambda x: x.weight, reverse=True)    #sorting check pool by highest face-values first
 Dice.check_pool = copy
 Dice.dice_pool = Dice.dice_pool_copy                              #copying back the dice pool without check dice
-print(Dice.dice_pool)
-for i in range(0, config.max_roll):
-    Dice.function_check = 0
-    Skills.depend = 0
-    Dice.crit_count = 0
-    if Dice.check_pool:
-        for x in Dice.check_pool:
-            Dice.check(x)
-        for x in Dice.s_s:
-            Dice.check_result(x)
-        if Dice.value != -999:
-            Dice.roll_lock = Dice.crit_count                       #locking in amount of rolls
-            for x in Dice.dice_pool:
-                Dice.roll(x)
-            for x in Skills.skill_pool:
-                Skills.skill_spend(x)
-            Dice.roll_results()
-    else:
-        for x in Dice.dice_pool:
-            Dice.roll(x)
-        for x in Skills.skill_pool:
-            Skills.skill_spend(x)
-        Dice.roll_results()
+
+Dice.they_see_me_rollin()           #rolling
 Dice.prepare_check = 0
 Results.format()                    #preparing results
 #Results.output
