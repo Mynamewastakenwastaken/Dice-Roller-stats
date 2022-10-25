@@ -68,9 +68,10 @@ class Dice(object):
     function_check = 0
     value = 0
 
-    def __init__(self, faces, primary=0, crit_value=1, state=0, amount=1, weight=0):
+    def __init__(self, faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0):
         self.faces = faces
         self.primary = primary
+        self.crit_behavior = crit_behavior
         self.crit_value = crit_value
         self.state = state
         self.amount = amount
@@ -147,49 +148,64 @@ class Dice(object):
             self.state_resolver()
 
     def state_resolver(self):
-        if self.state == 0:     #sum of all rolled values
+        if self.state == 0:             #sum of all rolled values
             for x in Dice.temp_roll:
                 if (x % 1) != 0:
                     temp = (x % 1)
                     Dice.skill_count += (temp * 10)
                     Dice.sub_total += (x - temp)
                 else:
-                    Dice.sub_total += x
-        if self.state == 1:     #max of all rolled values
-            max = max(Dice.temp_roll)
-            if (max % 1) != 0:
-                temp = (max % 1)
+                    if x == 999:
+                        Dice.value = x
+                        self.crit_resolver()
+                    else:
+                        Dice.sub_total += x
+        if self.state == 1:             #max of all rolled values
+            max_value = max(Dice.temp_roll)
+            if (max_value % 1) != 0:
+                temp = (max_value % 1)
                 Dice.skill_count += (temp * 10)
-                Dice.sub_total += (max - temp)
+                Dice.sub_total += (max_value - temp)
             else:
-                Dice.sub_total += max
-        if self.state == 2:     #min of all rolled values
-            min = min(Dice.temp_roll)
-            if (min % 1) != 0:
-                temp = (min % 1)
+                if max_value == 999:
+                    Dice.value = max_value
+                    self.crit_resolver()
+                else:
+                    Dice.sub_total += max_value
+        if self.state == 2:             #min of all rolled values
+            min_value = min(Dice.temp_roll)
+            if (min_value % 1) != 0:
+                temp = (min_value % 1)
                 Dice.skill_count += (temp * 10)
-                Dice.sub_total += (min - temp)
+                Dice.sub_total += (min_value - temp)
             else:
-                Dice.sub_total += min
+                if min_value == 999:
+                    Dice.value = min_value
+                    self.crit_resolver()
+                else:
+                    Dice.sub_total += min_value
 
 
     def crit_resolver(self):
         temp = Dice.value
-        while temp == 999:
-            Dice.crit_count += 1
-            Dice.sub_total += self.crit_value
-            temp = random.choice(self.faces)
-        if Dice.crit_count > result.crit_chain:
-            result.crit_chain = Dice.crit_count
-        if temp == -999:
-            Dice.sub_total += 0
-        else:
-            if (temp % 1) != 0:
-                temp2 = (temp % 1)
-                Dice.skill_count += (temp2 * 10)
-                Dice.sub_total += (temp - temp2)
+        if self.crit_behavior == 0:                 #rerolling crits until no crit
+            while temp == 999:
+                Dice.crit_count += 1
+                Dice.sub_total += self.crit_value
+                temp = random.choice(self.faces)
+            if Dice.crit_count > result.crit_chain:
+                result.crit_chain = Dice.crit_count
+            if temp == -999:
+                Dice.sub_total += 0
             else:
-                Dice.sub_total += temp
+                if (temp % 1) != 0:
+                    temp2 = (temp % 1)
+                    Dice.skill_count += (temp2 * 10)
+                    Dice.sub_total += (temp - temp2)
+                else:
+                    Dice.sub_total += temp
+        if self.crit_behavior == 1:                 #rerolling once
+            dgg
 
     @classmethod
     def roll_results(cls):
@@ -209,12 +225,13 @@ class Results:
     average = 0
     crit_average = 0
 
-    def __init__(self, totalsum=0, misses=0, crit_chain=0, crit_total=0, crit_divider=0):
+    def __init__(self, totalsum=0, misses=0, crit_chain=0, crit_total=0, crit_divider=0, state=0):
         self.totalsum = totalsum
         self.misses = misses
         self.crit_chain = crit_chain
         self.crit_total = crit_total
         self.crit_divider = crit_divider
+        self.state = state
 
     @classmethod
     def prepare(cls):
@@ -223,12 +240,19 @@ class Results:
 
     def plot_points(self):
         for x in result.bar_dict:
-            for y in result.tally.keys():
-                if y >= x:
-                    result.bar_dict[x] += result.tally[y]
-            result.bar_dict[x] = round((result.bar_dict[x] / config.max_roll) * 100, 2)
-        if config.graph_start <= 0:
-            result.bar_dict[0] = round((result.misses / config.max_roll) * 100, 2)
+            if result.state == 0:
+                for y in result.tally.keys():
+                    if y >= x:
+                        result.bar_dict[x] += result.tally[y]
+                result.bar_dict[x] = round((result.bar_dict[x] / config.max_roll) * 100, 2)
+                if config.graph_start <= 0:
+                    result.bar_dict[0] = round((result.misses / config.max_roll) * 100, 2)
+            if result.state == 1:
+                for y in result.tally.keys():
+                    if y == x:
+                        result.bar_dict[x] = result.tally[y]
+                result.bar_dict[x] = round((result.bar_dict[x] / config.max_roll) * 100, 2)
+
 
     @classmethod
     def format(cls):
@@ -270,9 +294,9 @@ skill3 = Skills(3, 0)
 skill4 = Skills(4, 0)
 skill5 = Skills(5, 0)
 
-# faces, primary=0, crit_value=1, state=0, amount=1, weight=0           state: 0 sum, 1 max, 2 min
-#die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 1, 0, 1)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
-die2 = Dice([1, 2, 3, 4, 5, 6], 0, 0, 0, 1)                     # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
+# faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0           state: 0 sum, 1 max, 2 min
+die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 0, 1, 0, 1)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
+die2 = Dice([1, 2, 3, 4, 5, 6, 7, 8], 0, 0, 0, 0, 1)                     # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
 #die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])                          #mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
 #die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
