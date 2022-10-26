@@ -95,7 +95,7 @@ class Dice(object):
             Dice.check_pool.append(self)
             Dice.dice_pool_copy.remove(self)
 
-    @classmethod
+    @classmethod                                        #the rolling function
     def they_see_me_rollin(cls):
         for i in range(0, config.max_roll):
             Dice.function_check = 0
@@ -356,10 +356,11 @@ for x in Dice.dice_pool:
     Dice.prepare(x)
 copy = sorted(Dice.check_pool, key=lambda x: x.weight, reverse=True)    #sorting check pool by highest face-values first
 Dice.check_pool = copy
-Dice.dice_pool = Dice.dice_pool_copy                              #copying back the dice pool without check dice
+Dice.dice_pool = Dice.dice_pool_copy                                    #copying back the dice pool without check dice
 
 Dice.they_see_me_rollin()           #rolling
 Dice.prepare_check = 0
+
 Results.format()                    #preparing results
 #Results.output
 print(Results.average)
