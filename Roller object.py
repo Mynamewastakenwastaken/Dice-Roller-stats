@@ -80,7 +80,15 @@ class Dice(object):
         self.weight = weight
         Dice.dice_pool.append(self)
 
-    def prepare(self):                                      #preparing once for entire rolling process
+    @classmethod
+    def prepare(cls):
+        for x in Dice.dice_pool:
+            Dice.sort(x)
+        copy = sorted(Dice.check_pool, key=lambda x: x.weight, reverse=True)        #sorting check pool by highest face-values first
+        Dice.check_pool = copy
+        Dice.dice_pool = Dice.dice_pool_copy                    #copying back the dice pool without check dice
+
+    def sort(self):                                      #preparing once for entire rolling process
         if Dice.prepare_check != 1:
             Dice.prepare_check = 1
             Skills.prepare()                                #also preparing skills and results
@@ -107,7 +115,7 @@ class Dice(object):
                 for x in Dice.s_s:
                     Dice.check_result(x)
                 if Dice.value != -999:
-                    Dice.roll_lock = Dice.crit_count  # locking in amount of rolls
+                    Dice.roll_lock = Dice.crit_count             #locking in amount of rolls
                     for x in Dice.dice_pool:
                         Dice.roll(x)
                     for x in Skills.skill_pool:
@@ -303,13 +311,13 @@ class Results:
                 result.bar_dict[x] = round((result.bar_dict[x] / config.max_roll) * 100, 2)
 
 
-    @classmethod                                       #preparing results
+    @classmethod                             #preparing results
     def format(cls):
         cls.average = round(result.totalsum / (config.max_roll - result.misses), 2)
         if result.crit_divider != 0:
             cls.crit_average = round(result.crit_total/result.crit_divider, 2)
 
-    def graph(self):                    #outputing bar graph
+    def graph(self):                         #outputing bar graph
         percentage = result.bar_dict.values()
         damage = result.bar_dict.keys()
         x = np.arange(len(damage))
@@ -343,27 +351,23 @@ skill3 = Skills(3, 0)
 skill4 = Skills(4, 0)
 skill5 = Skills(5, 0)
 
-#!!if primary dice are used, its crit behavior is always used!!
+#!!! if primary dice are used, its crit behavior is always used !!!
 
-# faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0           state: 0 sum, 1 max, 2 min
+# faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0        -> state: 0 sum, 1 max, 2 min <-
 die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 0, 1, 0, 1)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
-die2 = Dice([1, 2, 3, 4, 5, 6, 7, 8], 0, 1, 8, 2, 2)                     # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
-#die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])                              #mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
+die2 = Dice([1.0, 2.0, 3, 4, 5, 6, 7, 8], 0, 1, 8, 2, 2)               # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
+#die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])                             # mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
 #die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
 
-for x in Dice.dice_pool:
-    Dice.prepare(x)
-copy = sorted(Dice.check_pool, key=lambda x: x.weight, reverse=True)    #sorting check pool by highest face-values first
-Dice.check_pool = copy
-Dice.dice_pool = Dice.dice_pool_copy                                    #copying back the dice pool without check dice
 
+Dice.prepare()
 Dice.they_see_me_rollin()           #rolling
 Dice.prepare_check = 0
 
 Results.format()                    #preparing results
-#Results.output
-print(Results.average)
+
+print('the average is: ' + str(Results.average))
 print('highest streak is: ' + str(result.crit_chain) + ' at ' + str((max(Results.tally))))
 result.plot_points()                #preparing graph plot points
 result.graph()                      #output graph
