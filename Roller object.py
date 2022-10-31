@@ -5,7 +5,7 @@ import numpy as np
 
 class Settings:
 
-    def __init__(self, max_roll=100000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=1000000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.graph_start = graph_start
         self.graph_end = graph_end
@@ -78,6 +78,7 @@ class Dice(object):
         self.state = state
         self.amount = amount
         self.weight = weight
+        Dice.dice_pool.append(self)
 
     @classmethod
     def prepare(cls):
@@ -133,7 +134,7 @@ class Dice(object):
             if Dice.function_check != 1:
                 Dice.function_check = 1
                 Dice.sub_total = 0
-                Dice.skill_count = 0
+               # Dice.skill_count = 0
                 Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
@@ -148,7 +149,7 @@ class Dice(object):
             if Dice.function_check != 1:
                 Dice.function_check = 1
                 Dice.sub_total = 0
-                Dice.skill_count = 0
+              #  Dice.skill_count = 0
                 Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
@@ -339,13 +340,13 @@ class Results:
 
 
 # max_roll=100000, graph_start=0, graph_end=10
-config = Settings(10000,)
+config = Settings()
 result = Results()
 
 # cost=0, damage=0, repeat=0, dependant=0, initiator=0
 
-#skill1 = Skills(1, 2, 1, 1, 0)
-#skill2 = Skills(2, 4, 0, 0, 1)
+skill1 = Skills(1, 2, 1, 1, 0)
+skill2 = Skills(2, 4, 0, 0, 1)
 skill3 = Skills(3, 0)
 skill4 = Skills(4, 0)
 skill5 = Skills(5, 0)
@@ -353,13 +354,13 @@ skill5 = Skills(5, 0)
 #!!! if primary dice are used, its crit behavior is always used !!!
 
 # faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0        -> state: 0 sum, 1 max, 2 min <-
-#die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 0, 1, 0, 1)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
-#die2 = Dice([1.0, 2.0, 3, 4, 5, 6, 7, 8], 0, 1, 8, 2, 2)               # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
+die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 0, 1, 0, 1)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
+die2 = Dice([0, 0, 0, 0.1, 1.1, 0.2], 0, 0, 0, 0, 1)               # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
 #die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])                             # mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
 #die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
-for i in range(0, 10):
-    Dice.dice_pool.append(Dice([0]))
+#for i in range(0, 10):
+    #Dice.dice_pool.append(Dice([0]))
 
 #Dice.dice_pool[0].faces = [1.0, 2.0, 3, 4, 5, 6, 7, 8]
 
@@ -367,8 +368,8 @@ def set_dice(self, **kwargs):            #Dice attribute setter
     for x, y in kwargs.items():
         set_dice(self, x, y)
 
-for i in Dice.dice_pool:
-    i.faces = [1.0, 2.0, 3, 4, 5, 6, 7, 8]
+#for i in Dice.dice_pool:
+    #i.faces = [1.0, 2.0, 3, 4, 5, 6, 7, 8]
 
 
 Dice.prepare()
