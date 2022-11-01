@@ -1,7 +1,23 @@
 from tkinter import *
+from tkinter.ttk import Progressbar
 
 root = Tk()
 root.title("Dice Roller")
+
+
+def openResultWindow():         #seperate window for results
+    result_window = Toplevel(root)
+    result_window.title("Results")
+    Label(result_window, text="Rolling...").pack()
+    result_window.grab_set()
+    p = Progressbar(result_window, orient=HORIZONTAL, length=200, mode="determinate", takefocus=True, maximum=10000)
+    p.pack()
+    cancel = Button(result_window, text='cancel', command=lambda: result_window.destroy())
+    cancel.pack()
+    for i in range(10000):
+        p.step()
+        result_window.update()
+
 
 
 class Dice(object):
@@ -24,6 +40,9 @@ Skill_frame = LabelFrame(root, text="Skills", padx=8, pady=8)
 Skill_frame.pack(padx=10, pady=10, side=TOP)
 Options_frame = LabelFrame(root, text="Options", padx=8, pady=8)
 Options_frame.pack(padx=10, pady=10, side=BOTTOM, fill=BOTH)
+#Result_frame = LabelFrame(root, text="Results", padx=8, pady=8)
+#Result_frame.pack(padx=10, pady=10, side=BOTTOM, fill=BOTH)
+
 
 Select_Label = Label(Die_frame, text="Define dice").grid(row=0, column=2)
 Amount_Label = Label(Die_frame, text="Amt").grid(row=0, column=3)
@@ -105,6 +124,17 @@ def all_skillcheck():  # all-checkbox function
         for i in range(0, check_length):
             skill_values[i].set(0)
     enable_check_skill()
+
+def all_dropmenu_swap(*options):  # all-dropmenu function
+    if drop_value_all.get() == 'Sum':
+        for i in range(0, 10):
+            drop_values[i].set(drop_options[0])
+    if drop_value_all.get() == 'Max':
+        for i in range(0, 10):
+            drop_values[i].set(drop_options[1])
+    if drop_value_all.get() == 'Min':
+        for i in range(0, 10):
+            drop_values[i].set(drop_options[2])
 
 
 skill_values = []
@@ -280,10 +310,19 @@ for i in range(0, 10):  # creating drop menu's
     value_inside = StringVar()
     value_inside.set(drop_options[0])
     dropmenu = OptionMenu(Die_frame, value_inside, *drop_options)
+    dropmenu.configure(width=5)
     dropmenu.grid(row=i + 1, column=4)
     drop_values.append(value_inside)
 
-test_button = Button(Options_frame, text='test', command=lambda: execute()).grid(row=5, column=5)
+drop_value_all = StringVar()
+drop_value_all.set(drop_options[0])
+all_dropmenu = OptionMenu(Die_frame, drop_value_all, *drop_options)
+all_dropmenu.configure(width=5)
+all_dropmenu.grid(row=0, column=4)
+drop_value_all.trace('w', lambda x, y, z: all_dropmenu_swap())    #trace needs 3 arguments, xyz are dummies
+
+
+test_button = Button(Options_frame, text='test', command=lambda: show2()).grid(row=5, column=5)
 
 
 def show():  # test function
@@ -298,13 +337,10 @@ def show():  # test function
 
 
 def show2():
-    temp = []
     for i in range(0, 10):
-        temp.append(Entrybox_Widget.Face_objects[i])
-    print(temp)
-    # for i in range(0, 10):
-    # temp.append(Entrybox_Widget.Cost_values[i].get())
-    # print(temp)
+        drop_values[i].set(drop_options[0])
+
+
 
 
 def show3():
@@ -347,4 +383,4 @@ def Dice_Construct(*args):
             return temp
 
 
-root.mainloop()
+mainloop()
