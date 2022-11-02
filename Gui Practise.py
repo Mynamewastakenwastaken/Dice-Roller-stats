@@ -1,22 +1,57 @@
 from tkinter import *
+from tkinter.ttk import Progressbar
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 root = Tk()
 root.title("Dice Roller")
 
 """GUI----START----GUI----START----GUI----START----GUI----START----GUI"""
+def openLoadWindow():         #seperate window for results
+    global load_window
+    load_window = Toplevel(root)
+    load_window.title("Results")
+    Label(load_window, text="Rolling...").pack()
+    load_window.grab_set()
+    global p
+    p = Progressbar(load_window, orient=HORIZONTAL, length=200, mode="determinate", takefocus=True, maximum=config.max_roll)
+    p.pack()
+    cancel = Button(load_window, text='cancel', command=lambda: load_window.destroy())
+    cancel.pack()
+    Dice.they_see_me_rollin()
+    Dice.prepare_check = 0
+    Results.format()
+    result.plot_points()
+    load_window.destroy()
+    openResultWindow()
+
+def openResultWindow():
+    global result_window
+    result_window = Toplevel(root)
+    result_window.title("Results")
+    Label(result_window, text="Tada!").pack()
+    print(Results.tally)
+    result.graph()
+    result.tally.clear()
+    result.misses = 0
+    result.bar_dict.clear()
+    result.average = 0
+    result.totalsum = 0
+    result.crit_total = 0
+    result.crit_divider = 0
+    result_window.grab_set()
 
 Die_frame = LabelFrame(root, text="Dice", padx=8, pady=8)
 Die_frame.pack(padx=10, pady=10, side=LEFT, fill=BOTH)
 Skill_frame = LabelFrame(root, text="Skills", padx=8, pady=8)
 Skill_frame.pack(padx=10, pady=10, side=TOP)
-Output_frame = LabelFrame(root, text="Output", padx=8, pady=8)
-Output_frame.pack(padx=10, pady=10, side=BOTTOM, fill=BOTH)
+Options_frame = LabelFrame(root, text="Options", padx=8, pady=8)
+Options_frame.pack(padx=10, pady=10, side=BOTTOM, fill=BOTH)
 
 Select_Label = Label(Die_frame, text="Define dice").grid(row=0, column=2)
-Repeat_Label = Label(Output_frame, text="Repeats").grid(row=2, column=0)
 Amount_Label = Label(Die_frame, text="Amt").grid(row=0, column=3)
 Crit_Label = Label(Die_frame, text="Crit value -").grid(row=11, column=2)
 Crit_Label = Label(Die_frame, text="Behavior").grid(row=11, column=2, padx=(20, 0), columnspan=3)
@@ -43,18 +78,23 @@ def enable_check_face():
         else:
             Entrybox_Widget.Face_objects[i].configure(state=NORMAL)
             Entrybox_Widget.Amount_objects[i].configure(state=NORMAL)
+            if Entrybox_Widget.Amount_values[i].get() == 0:
+                Entrybox_Widget.Amount_objects[i].delete(0, END)
+                Entrybox_Widget.Amount_objects[i].insert(0, 1)
 
 
 def enable_check_skill():
     for i in range(0, 10):
         if skill_values[i].get() == 0:
-            Entrybox_Widget.cost_objects[i].configure(state=DISABLED)
-            Entrybox_Widget.damage_objects[i].configure(state=DISABLED)
+            Entrybox_Widget.Cost_objects[i].configure(state=DISABLED)
+            Entrybox_Widget.Damage_objects[i].configure(state=DISABLED)
+            repeat_objects[i].configure(state=DISABLED)
             initiate_objects[i].configure(state=DISABLED)
             depend_objects[i].configure(state=DISABLED)
         else:
-            Entrybox_Widget.cost_objects[i].configure(state=NORMAL)
-            Entrybox_Widget.damage_objects[i].configure(state=NORMAL)
+            Entrybox_Widget.Cost_objects[i].configure(state=NORMAL)
+            Entrybox_Widget.Damage_objects[i].configure(state=NORMAL)
+            repeat_objects[i].configure(state=NORMAL)
             initiate_objects[i].configure(state=NORMAL)
             depend_objects[i].configure(state=NORMAL)
 
@@ -92,12 +132,26 @@ def all_skillcheck():  # all-checkbox function
             skill_values[i].set(0)
     enable_check_skill()
 
+def all_dropmenu_swap(*options):  # all-dropmenu function
+    if drop_value_all.get() == 'Sum':
+        for i in range(0, 10):
+            drop_values[i].set(drop_options[0])
+    if drop_value_all.get() == 'Max':
+        for i in range(0, 10):
+            drop_values[i].set(drop_options[1])
+    if drop_value_all.get() == 'Min':
+        for i in range(0, 10):
+            drop_values[i].set(drop_options[2])
+
 
 skill_values = []
+repeat_values = []
+repeat_objects = []
 initiate_values = []
 initiate_objects = []
 depend_values = []
 depend_objects = []
+
 # Skills: Cost, Damage, Repeatable, initiator/dependant, Skill point carryover between rolls
 for i in range(0, 10):  # creating skill checkboxes
     value_inside = IntVar()
@@ -106,11 +160,19 @@ for i in range(0, 10):  # creating skill checkboxes
     check.grid(row=i + 1, column=0)
     skill_values.append(value_inside)
 
+for i in range(0, 10):  # creating repeatable checkboxes
+    value_inside = IntVar()
+    value_inside.set(0)
+    check = Checkbutton(Skill_frame, variable=value_inside, state=DISABLED)
+    check.grid(row=i + 1, column=3, padx=(8, 0))
+    repeat_objects.append(check)
+    repeat_values.append(value_inside)
+
 for i in range(0, 10):  # creating initiate checkboxes
     value_inside = IntVar()
     value_inside.set(0)
     check = Checkbutton(Skill_frame, variable=value_inside, command=lambda: initiator_switch(), state=DISABLED)
-    check.grid(row=i + 1, column=3, padx=(8, 0))
+    check.grid(row=i + 1, column=4, padx=(8, 0))
     initiate_objects.append(check)
     initiate_values.append(value_inside)
 
@@ -118,49 +180,63 @@ for i in range(0, 10):  # creating dependant checkboxes
     value_inside = IntVar()
     value_inside.set(0)
     check = Checkbutton(Skill_frame, variable=value_inside, command=lambda: dependant_switch(), state=DISABLED)
-    check.grid(row=i + 1, column=4, padx=(8, 0))
+    check.grid(row=i + 1, column=5, padx=(8, 0))
     depend_objects.append(check)
     depend_values.append(value_inside)
 
 
-def char_length(S):  # limit only numbers and set max character limit
-    if len(S) == 0:
+carry_check_label = Label(Skill_frame, text="point carry-over").grid(row=11, column=1, pady=(8, 0), columnspan=2)
+carry_check_value = []
+carry_check_inside = IntVar()
+carry_check = Checkbutton(Skill_frame, variable=carry_check_inside)
+carry_check.grid(row=11, column=3, padx=(8, 0), pady=(10, 0))
+carry_check_value.append(carry_check_inside)
+
+def char_length(i):  # limit only numbers and set max character limit
+    if len(i) == 0:
         return True
-    elif len(S) < 4 and S.isdigit():
+    elif len(i) < 4 and i.isdigit():
         return True
     else:
         return False
 
 
-def char_numeric(S):  # limit only numbers
-    if S.isdigit():
+def char_numeric(i):  # limit only numbers
+    if len(i) < 8 and i.isdigit() and int(i) >= 1:
         return True
     else:
         return False
 
 
+#entrybox validations
 clcmd = (root.register(char_length), '%P')
 cncmd = (root.register(char_numeric), '%P')
-Cost_Label = Label(Skill_frame, text="cost  -").grid(row=0, column=1)
-Damage_Label = Label(Skill_frame, text="damage").grid(row=0, column=2)
-Initiator_Label = Label(Skill_frame, text="1").grid(row=0, column=3)
-Dependant_Label = Label(Skill_frame, text="0").grid(row=0, column=4)
+
+#labels
+Cost_Label = Label(Skill_frame, text="cost   -").grid(row=0, column=1, padx=(8, 0))
+Damage_Label = Label(Skill_frame, text="value").grid(row=0, column=2)
+Repeat_Label = Label(Skill_frame, text="∞").grid(row=0, column=3, padx=(5, 0))
+Initiator_Label = Label(Skill_frame, text="1").grid(row=0, column=4)
+Dependant_Label = Label(Skill_frame, text="0").grid(row=0, column=5)
+Repeat_Label = Label(Options_frame, text="Rolls:").grid(row=2, column=0, padx=(0, 40))
+Graph_Label = Label(Options_frame, text="Graph range:").grid(row=4, column=0)
 Cost_values = []
 
 
 class Entrybox_Widget():
     Face_objects = []
     Amount_objects = []
-    cost_objects = []
-    damage_objects = []
+    Cost_objects = []
+    Damage_objects = []
     Face_values = []
     Amount_values = []
     Crit_value = []
     Cost_values = []
     Damage_values = []
     Repeat_value = []
+    Graph_value = []
 
-    def add_face_entry(self):
+    def add_face_entry(self):  # defining all entryboxes
         value_inside = StringVar()
         entry = Entry(Die_frame, width=40, textvariable=value_inside, state=DISABLED)
         entry.grid(row=i + 1, column=2, padx=(2, 4))
@@ -173,7 +249,6 @@ class Entrybox_Widget():
         entry = Entry(Die_frame, width=4, validate="key", validatecommand=clcmd, textvariable=value_inside,
                       state=DISABLED)
         entry.grid(row=i + 1, column=3, padx=(2, 4))
-        entry.insert(0, '')
         Entrybox_Widget.Amount_objects.append(entry)
         Entrybox_Widget.Amount_values.append(value_inside)
 
@@ -182,7 +257,7 @@ class Entrybox_Widget():
         entry = Entry(Skill_frame, width=4, validate="key", validatecommand=clcmd, textvariable=value_inside,
                       state=DISABLED)
         entry.grid(row=i + 1, column=1)
-        Entrybox_Widget.cost_objects.append(entry)
+        Entrybox_Widget.Cost_objects.append(entry)
         Entrybox_Widget.Cost_values.append(value_inside)
 
     def add_damage_entry(self):
@@ -190,7 +265,7 @@ class Entrybox_Widget():
         entry = Entry(Skill_frame, width=4, validate="key", validatecommand=clcmd, textvariable=value_inside,
                       state=DISABLED)
         entry.grid(row=i + 1, column=2, padx=5)
-        Entrybox_Widget.damage_objects.append(entry)
+        Entrybox_Widget.Damage_objects.append(entry)
         Entrybox_Widget.Damage_values.append(value_inside)
 
     def add_crit_entry(self):
@@ -200,12 +275,19 @@ class Entrybox_Widget():
         entry.grid(row=12, column=2)
         Entrybox_Widget.Crit_value.append(value_inside)
 
-    def add_repeat_entry(self):
+    def add_rolls_entry(self):
         value_inside = IntVar()
         value_inside.set(100000)
-        entry = Entry(Output_frame, width=10, validate="key", validatecommand=cncmd, textvariable=value_inside)
-        entry.grid(row=3, column=0)
+        entry = Entry(Options_frame, width=8, validate="key", validatecommand=cncmd, textvariable=value_inside)
+        entry.grid(row=2, column=1, pady=5, padx=(38, 0))
         Entrybox_Widget.Repeat_value.append(value_inside)
+
+    def add_graph_entry(self):
+        value_inside = IntVar()
+        value_inside.set(i*9+1)
+        entry = Entry(Options_frame, width=4, validate="key", validatecommand=clcmd, textvariable=value_inside)
+        entry.grid(row=4, column=i+1, columnspan=2)
+        Entrybox_Widget.Graph_value.append(value_inside)
 
 
 for i in range(0, 10):  # creating entryboxes
@@ -213,18 +295,20 @@ for i in range(0, 10):  # creating entryboxes
     Entrybox_Widget.add_amount_entry(i)
     Entrybox_Widget.add_cost_entry(i)
     Entrybox_Widget.add_damage_entry(i)
+    if i < 2:
+        Entrybox_Widget.add_graph_entry(i)
     if i < 1:
         Entrybox_Widget.add_crit_entry(i)
-        Entrybox_Widget.add_repeat_entry(i)
+        Entrybox_Widget.add_rolls_entry(i)
 
 crit_options = '∞', '2x'
-crit_value_type = IntVar()
-crit_value = []
+crit_value_type = StringVar()
+crit_behavior = []
 
 critmenu = OptionMenu(Die_frame, crit_value_type, *crit_options)
 crit_value_type.set(crit_options[0])
 critmenu.grid(row=12, column=2, padx=(20, 0), columnspan=3)
-crit_value.append(crit_value_type)
+crit_behavior.append(crit_value_type)
 
 drop_options = 'Sum', 'Max', 'Min'
 drop_values = []
@@ -233,48 +317,79 @@ for i in range(0, 10):  # creating drop menu's
     value_inside = StringVar()
     value_inside.set(drop_options[0])
     dropmenu = OptionMenu(Die_frame, value_inside, *drop_options)
+    dropmenu.configure(width=5)
     dropmenu.grid(row=i + 1, column=4)
     drop_values.append(value_inside)
 
-test_button = Button(Output_frame, text='test', command=lambda: execute()).grid(row=3, column=5, padx=(20, 0))
+drop_value_all = StringVar()
+drop_value_all.set(drop_options[0])
+all_dropmenu = OptionMenu(Die_frame, drop_value_all, *drop_options)
+all_dropmenu.configure(width=5)
+all_dropmenu.grid(row=0, column=4)
+drop_value_all.trace('w', lambda x, y, z: all_dropmenu_swap())    #trace needs 3 arguments, xyz are dummies
 
 
+test_button = Button(Options_frame, text='test', command=lambda: execute()).grid(row=5, column=5)
+
+#faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0
 def show():  # test function
-    temp = []
     for i in range(0, 10):
-        if check_values[i].get():
-            temp.append(drop_values[i].get())
+        if check_values[i].get() and Entrybox_Widget.Face_values[i].get():
+            die = Dice((Dice_Construct(Dice_Correct(Entrybox_Widget.Face_values[i].get()))))
         else:
-            temp.append('x')
-    print(temp)
-    print('-----------')
+            pass
+    #print(Dice.dice_pool[0].faces)
+    for i in Dice.dice_pool:
+        print(i.faces)
 
-
-def show2():
-    temp = []
+#faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0
+def fill_dicepool():            #create dice where checkbox = 1 and entry is not empty
+    if crit_behavior[0].get() == '∞':
+        critb = 0
+    else:
+        critb = 1
     for i in range(0, 10):
-        temp.append(Entrybox_Widget.Face_objects[i])
-    print(temp)
-    # for i in range(0, 10):
-    # temp.append(Entrybox_Widget.Cost_values[i].get())
-    # print(temp)
-
-
-def show3():
-    temp = []
-    for i in range(0, 10):
-        if check_values[i].get():
-            temp.append(Entrybox_Widget.Face_values[i].get())
+        if check_values[i].get() and Entrybox_Widget.Face_values[i].get():
+            if drop_values[i].get() == 'Sum':
+                state = 0
+            elif drop_values[i].get() == 'Max':
+                state = 1
+            else:
+                state = 2
+            die = Dice((Dice_Construct(Dice_Correct(Entrybox_Widget.Face_values[i].get()))),
+                       0, critb, Entrybox_Widget.Crit_value[0].get(), state, Entrybox_Widget.Amount_values[i].get())
         else:
-            temp.append('x')
-    print(temp)
-    print('-----------')
+            pass
+
+# Skills: Cost, Damage, Repeatable, dependant, initiator
+def fill_skillpool():
+    Skills.skill_pool.clear()
+    for i in range(0, 10):
+        if skill_values[i].get():
+            skill = Skills(Entrybox_Widget.Cost_values[i].get(), Entrybox_Widget.Damage_values[i].get(),
+                           repeat_values[i].get(), depend_values[i].get(), initiate_values[i].get())
+def config_settings():
+    global result
+    result = Results()
+    global config
+    config = Settings(Entrybox_Widget.Repeat_value[0].get(), Entrybox_Widget.Graph_value[0].get(),
+                      Entrybox_Widget.Graph_value[1].get())
+
+def execute():              #any dice that can miss become primary
+    Dice.dice_pool.clear()
+    fill_dicepool()
+    for i in Dice.dice_pool:
+        for x in i.faces:
+            if x == -999:
+                i.primary = 1
+            else:
+                pass
+    fill_skillpool()
+    config_settings()
+    Dice.prepare()
+    openLoadWindow()
 
 
-def execute():
-    print('dummy function')
-
-"""GUI----END----GUI----END----GUI----END----GUI----END----GUI"""
 def Dice_Correct(*args):  # function to return readable dice
     for x in args:
         if ',' in x:
@@ -284,7 +399,7 @@ def Dice_Correct(*args):  # function to return readable dice
             return "".join(temp)
 
 
-def Dice_Construct(*args):
+def Dice_Construct(*args):        #function to turn numbers into dice
     for x in args:
         if ',' in x:
             temp = [float(e) for e in x.split(',')]
@@ -296,10 +411,11 @@ def Dice_Construct(*args):
                 temp.append(i + 1)
             return temp
 
+"""GUI----END----GUI----END----GUI----END----GUI----END----GUI"""
 
 class Settings:
 
-    def __init__(self, max_roll=1000000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=1000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.graph_start = graph_start
         self.graph_end = graph_end
@@ -340,6 +456,8 @@ class Skills:
                         while self.cost <= Dice.skill_count:
                             Dice.sub_total += self.damage
                             Dice.skill_count -= self.cost
+                else:
+                    return
 
     @classmethod
     def prepare(cls):                           #sorting skill pool so more expensive/initiator skills are used first
@@ -421,6 +539,8 @@ class Dice(object):
                 for x in Skills.skill_pool:
                     Skills.skill_spend(x)
                 Dice.roll_results()
+        p.step()
+        load_window.update()
     def check(self):                                #rolling primary dice
         if self.primary != 1:
             return
@@ -621,57 +741,33 @@ class Results:
         ax.set_xlabel('n Damage or more')
         ax.set_title('Damage chart')
         ax.set_xticks(x, damage)
-        ax.set_xticklabels(result.bar_dict.keys())
+        #ax.set_xticklabels(result.bar_dict.keys())
         pps = ax.bar(x, percentage, width, label='% chance')
         for p in pps:
             height = p.get_height()
-            ax.annotate('{}'.format(height),
-                        xy=(p.get_x() + p.get_width() / 2, height),
-                        xytext=(0, 0),  # 3 points vertical offset
-                        textcoords="offset points",
-                        ha='center', va='bottom')
-        plt.show()
+            ax.annotate('{}'.format(height), xy=(p.get_x() + p.get_width() / 2, height), xytext=(0, 0),
+                        textcoords="offset points", ha='center', va='bottom', fontsize=9)
+        #plt.show()
+        chart_type = FigureCanvasTkAgg(fig, result_window)
+        chart_type.get_tk_widget().pack()
 
 
-# max_roll=100000, graph_start=0, graph_end=10
-config = Settings()
-result = Results()
+#def set_dice(self, **kwargs):            #Dice attribute setter
+#    for x, y in kwargs.items():
+#        set_dice(self, x, y)
 
-# cost=0, damage=0, repeat=0, dependant=0, initiator=0
+#config = Settings()
+#result = Results()
+#test_die = Dice([1, 2, 3, 4, 5, 6])
+#Dice.prepare()
+#Dice.they_see_me_rollin()           #rolling
+#Dice.prepare_check = 0
 
-skill1 = Skills(1, 2, 1, 1, 0)
-skill2 = Skills(2, 4, 0, 0, 1)
-skill3 = Skills(3, 0)
-skill4 = Skills(4, 0)
-skill5 = Skills(5, 0)
+#Results.format()                    #preparing results
 
-#!!! if primary dice are used, its crit behavior is always used !!!
+#print('the average is: ' + str(Results.average))
+#print('highest streak is: ' + str(result.crit_chain) + ' at ' + str((max(Results.tally))))
+#result.plot_points()                #preparing graph plot points
+#result.graph()                      #output graph
 
-# faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0        -> state: 0 sum, 1 max, 2 min <-
-die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 0, 1, 0, 1)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
-die2 = Dice([0, 0, 0, 0.1, 1.1, 0.2], 0, 0, 0, 0, 1)               # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
-#die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])                             # mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
-#die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
-
-#for i in range(0, 10):
-    #Dice.dice_pool.append(Dice([0]))
-
-#Dice.dice_pool[0].faces = [1.0, 2.0, 3, 4, 5, 6, 7, 8]
-
-def set_dice(self, **kwargs):            #Dice attribute setter
-    for x, y in kwargs.items():
-        set_dice(self, x, y)
-
-
-Dice.prepare()
-Dice.they_see_me_rollin()           #rolling
-Dice.prepare_check = 0
-
-Results.format()                    #preparing results
-
-print('the average is: ' + str(Results.average))
-print('highest streak is: ' + str(result.crit_chain) + ' at ' + str((max(Results.tally))))
-result.plot_points()                #preparing graph plot points
-result.graph()                      #output graph
-
-root.mainloop()
+mainloop()

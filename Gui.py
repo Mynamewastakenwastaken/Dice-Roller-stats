@@ -1,10 +1,15 @@
 from tkinter import *
 from tkinter.ttk import Progressbar
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 root = Tk()
 root.title("Dice Roller")
 
-
+"""GUI----START----GUI----START----GUI----START----GUI----START----GUI"""
 def openLoadWindow():         #seperate window for results
     load_window = Toplevel(root)
     load_window.title("Results")
@@ -387,6 +392,6 @@ def Dice_Construct(*args):
             for i in range(0, size):
                 temp.append(i + 1)
             return temp
-
+"""GUI----END----GUI----END----GUI----END----GUI----END----GUI"""
 
 mainloop()
