@@ -5,20 +5,26 @@ root = Tk()
 root.title("Dice Roller")
 
 
-def openResultWindow():         #seperate window for results
-    result_window = Toplevel(root)
-    result_window.title("Results")
-    Label(result_window, text="Rolling...").pack()
-    result_window.grab_set()
-    p = Progressbar(result_window, orient=HORIZONTAL, length=200, mode="determinate", takefocus=True, maximum=10000)
+def openLoadWindow():         #seperate window for results
+    load_window = Toplevel(root)
+    load_window.title("Results")
+    Label(load_window, text="Rolling...").pack()
+    load_window.grab_set()
+    p = Progressbar(load_window, orient=HORIZONTAL, length=200, mode="determinate", takefocus=True, maximum=10000)
     p.pack()
-    cancel = Button(result_window, text='cancel', command=lambda: result_window.destroy())
+    cancel = Button(load_window, text='cancel', command=lambda: load_window.destroy())
     cancel.pack()
     for i in range(10000):
         p.step()
-        result_window.update()
+        load_window.update()
+    load_window.destroy()
+    openResultWindow()
 
-
+def openResultWindow():
+    result_window = Toplevel(root)
+    result_window.title("Results")
+    Label(result_window, text="Tada!").pack()
+    result_window.grab_set()
 
 class Dice(object):
     dice_pool = []
@@ -322,7 +328,7 @@ all_dropmenu.grid(row=0, column=4)
 drop_value_all.trace('w', lambda x, y, z: all_dropmenu_swap())    #trace needs 3 arguments, xyz are dummies
 
 
-test_button = Button(Options_frame, text='test', command=lambda: show2()).grid(row=5, column=5)
+test_button = Button(Options_frame, text='test', command=lambda: openLoadWindow()).grid(row=5, column=5)
 
 
 def show():  # test function

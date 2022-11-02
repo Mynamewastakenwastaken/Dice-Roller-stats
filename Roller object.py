@@ -1,11 +1,13 @@
+from tkinter import *
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-
+root = Tk()
 class Settings:
 
-    def __init__(self, max_roll=1000000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=1000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.graph_start = graph_start
         self.graph_end = graph_end
@@ -327,16 +329,15 @@ class Results:
         ax.set_xlabel('n Damage or more')
         ax.set_title('Damage chart')
         ax.set_xticks(x, damage)
-        ax.set_xticklabels(result.bar_dict.keys())
+        #ax.set_xticklabels(result.bar_dict.keys())
         pps = ax.bar(x, percentage, width, label='% chance')
         for p in pps:
             height = p.get_height()
-            ax.annotate('{}'.format(height),
-                        xy=(p.get_x() + p.get_width() / 2, height),
-                        xytext=(0, 0),  # 3 points vertical offset
-                        textcoords="offset points",
-                        ha='center', va='bottom')
-        plt.show()
+            ax.annotate('{}'.format(height), xy=(p.get_x() + p.get_width() / 2, height), xytext=(0, 0),
+                        textcoords="offset points", ha='center', va='bottom', fontsize=9)
+        #plt.show()
+        chart_type = FigureCanvasTkAgg(fig, root)
+        chart_type.get_tk_widget().pack()
 
 
 # max_roll=100000, graph_start=0, graph_end=10
@@ -368,8 +369,6 @@ def set_dice(self, **kwargs):            #Dice attribute setter
     for x, y in kwargs.items():
         set_dice(self, x, y)
 
-#for i in Dice.dice_pool:
-    #i.faces = [1.0, 2.0, 3, 4, 5, 6, 7, 8]
 
 
 Dice.prepare()
@@ -382,3 +381,5 @@ print('the average is: ' + str(Results.average))
 print('highest streak is: ' + str(result.crit_chain) + ' at ' + str((max(Results.tally))))
 result.plot_points()                #preparing graph plot points
 result.graph()                      #output graph
+
+mainloop()
