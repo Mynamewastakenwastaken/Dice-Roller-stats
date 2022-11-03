@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter.ttk import Progressbar
+import pickle
 import random
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,9 +22,12 @@ def openLoadWindow():         #seperate window for results
     p.pack()
     cancel = Button(load_window, text='cancel', command=lambda: load_window.destroy())
     cancel.pack()
+    for i in Dice.check_pool:
+        print(str(i.faces) + ' - ' + str(i.primary) + ' - ' + str(i.state))
     Dice.they_see_me_rollin()
     Dice.prepare_check = 0
     Results.format()
+    Results.prepare()
     result.plot_points()
     load_window.destroy()
     openResultWindow()
@@ -35,7 +39,7 @@ def openResultWindow():
     Label(result_window, text="Tada!").pack()
     print(Results.tally)
     result.graph()
-    result.tally.clear()
+    result.tally.clear()        #clearing results for next run
     result.misses = 0
     result.bar_dict.clear()
     result.average = 0
@@ -191,6 +195,29 @@ carry_check_inside = IntVar()
 carry_check = Checkbutton(Skill_frame, variable=carry_check_inside)
 carry_check.grid(row=11, column=3, padx=(8, 0), pady=(10, 0))
 carry_check_value.append(carry_check_inside)
+check_auto_graph_label = Label(Options_frame, text="Auto-graph").grid(row=5, column=0)
+check_auto_graph_inside = IntVar()
+check_auto_graph_value = []
+check_auto_graph = Checkbutton(Options_frame, variable=check_auto_graph_inside)
+check_auto_graph.grid(row=5, column=1)
+check_auto_graph_value.append(check_auto_graph_inside)
+check_auto_graph_value[0].set(1)
+def save():                 #save and load function for dice entry-boxes
+    savefile = {}
+    for i in range(0, 10):
+        if Entrybox_Widget.Face_values[i].get():
+            savefile["entry" + str(i)] = Entrybox_Widget.Face_values[i].get()
+    with open("saved_settings.dat", "wb") as pickle_file:
+        pickle.dump(savefile, pickle_file, pickle.HIGHEST_PROTOCOL)
+    print(savefile)
+
+def load():
+    with open("saved_settings.dat", "rb") as pickle_file:
+        savefile = pickle.load(pickle_file)
+    for i in range(0, 10):
+        if savefile.get("entry" + str(i)):
+            Entrybox_Widget.Face_values[i].set(savefile.get("entry" + str(i)))
+
 
 def char_length(i):  # limit only numbers and set max character limit
     if len(i) == 0:
@@ -284,7 +311,7 @@ class Entrybox_Widget():
 
     def add_graph_entry(self):
         value_inside = IntVar()
-        value_inside.set(i*9+1)
+        value_inside.set(i*10)
         entry = Entry(Options_frame, width=4, validate="key", validatecommand=clcmd, textvariable=value_inside)
         entry.grid(row=4, column=i+1, columnspan=2)
         Entrybox_Widget.Graph_value.append(value_inside)
@@ -300,6 +327,9 @@ for i in range(0, 10):  # creating entryboxes
     if i < 1:
         Entrybox_Widget.add_crit_entry(i)
         Entrybox_Widget.add_rolls_entry(i)
+
+load_button = Button(Die_frame, text='Load Dice', command=lambda: load()).grid(row=12, column=4)
+save_button = Button(Die_frame, text='Save Dice', command=lambda: save()).grid(row=14, column=4, pady=(20, 0))
 
 crit_options = '∞', '2x'
 crit_value_type = StringVar()
@@ -387,6 +417,8 @@ def execute():              #any dice that can miss become primary
     fill_skillpool()
     config_settings()
     Dice.prepare()
+    #print(Dice.dice_pool)
+    #print(Dice.check_pool[0].faces)
     openLoadWindow()
 
 
@@ -399,10 +431,11 @@ def Dice_Correct(*args):  # function to return readable dice
             return "".join(temp)
 
 
-def Dice_Construct(*args):        #function to turn numbers into dice
+def Dice_Construct(*args):        #function to turn numbers into dice. removing trailing commas and empty entries.
     for x in args:
         if ',' in x:
-            temp = [float(e) for e in x.split(',')]
+            stripped = x.strip(',')
+            temp = [float(e) for e in stripped.split(',') if not e == ""]
             return temp
         else:
             size = int(x)
@@ -415,7 +448,7 @@ def Dice_Construct(*args):        #function to turn numbers into dice
 
 class Settings:
 
-    def __init__(self, max_roll=1000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
+    def __init__(self, max_roll=10000, graph_start=0, graph_end=15):           #0 - max(primary), 1 - min(primary)
         self.max_roll = max_roll
         self.graph_start = graph_start
         self.graph_end = graph_end
@@ -467,7 +500,6 @@ class Skills:
 
 
 class Dice(object):
-    stressed = 1
     sub_total = 0
     roll_repeats = 0
     roll_lock = 0
@@ -503,8 +535,7 @@ class Dice(object):
     def sort(self):                                      #preparing once for entire rolling process
         if Dice.prepare_check != 1:
             Dice.prepare_check = 1
-            Skills.prepare()                                #also preparing skills and results
-            Results.prepare()
+            Skills.prepare()                                #also preparing skills
             Dice.crit_count = 0
             Dice.check_pool.clear()
             Dice.dice_pool_copy = Dice.dice_pool.copy()     #making a copy to prevent errors
@@ -532,7 +563,7 @@ class Dice(object):
                         Dice.roll(x)
                     for x in Skills.skill_pool:
                         Skills.skill_spend(x)
-                    Dice.roll_results()
+                Dice.roll_results()
             else:
                 for x in Dice.dice_pool:
                     Dice.roll(x)
@@ -544,11 +575,11 @@ class Dice(object):
     def check(self):                                #rolling primary dice
         if self.primary != 1:
             return
-        if Dice.stressed != 0:
+        if self.state == 2:
             if Dice.function_check != 1:
                 Dice.function_check = 1
                 Dice.sub_total = 0
-               # Dice.skill_count = 0
+               # Dice.skill_count = 0               #skill point carry-over!!!!!
                 Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
@@ -563,7 +594,7 @@ class Dice(object):
             if Dice.function_check != 1:
                 Dice.function_check = 1
                 Dice.sub_total = 0
-              #  Dice.skill_count = 0
+              #  Dice.skill_count = 0               #skill point carry-over!!!!!
                 Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
@@ -578,6 +609,7 @@ class Dice(object):
     def check_result(self):                     #check for primary crits/misses
         if Dice.value == -999:
             result.misses += 1
+            Dice.sub_total = 0
         elif Dice.value == 999:
             self.crit_resolver()
         else:
@@ -706,8 +738,14 @@ class Results:
 
     @classmethod                                #preparing plot points for bar graph
     def prepare(cls):
-        for i in range(config.graph_start, config.graph_end + 1):
-            result.bar_dict[i] = 0
+        if check_auto_graph_value[0].get():
+            start = min(Results.tally)
+            stop = max(Results.tally)
+            for i in range(int(start), int(stop+1)):
+                result.bar_dict[i] = 0
+        else:
+            for i in range(config.graph_start, config.graph_end + 1):
+                result.bar_dict[i] = 0
 
     def plot_points(self):                      #preparing plot points for bar graph
         for x in result.bar_dict:
@@ -716,9 +754,9 @@ class Results:
                     if y >= x:
                         result.bar_dict[x] += result.tally[y]
                 result.bar_dict[x] = round((result.bar_dict[x] / config.max_roll) * 100, 2)
-                if config.graph_start <= 0:
+                if min(Results.tally) <= 0:
                     result.bar_dict[0] = round((result.misses / config.max_roll) * 100, 2)
-            if result.state == 1:
+            elif result.state == 1:
                 for y in result.tally.keys():
                     if y == x:
                         result.bar_dict[x] = result.tally[y]
@@ -769,5 +807,7 @@ class Results:
 #print('highest streak is: ' + str(result.crit_chain) + ' at ' + str((max(Results.tally))))
 #result.plot_points()                #preparing graph plot points
 #result.graph()                      #output graph
+
+
 
 mainloop()
