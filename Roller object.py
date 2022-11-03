@@ -355,8 +355,8 @@ skill5 = Skills(5, 0)
 #!!! if primary dice are used, its crit behavior is always used !!!
 
 # faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0        -> state: 0 sum, 1 max, 2 min <-
-die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 0, 1, 0, 1)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
-die2 = Dice([0, 0, 0, 0.1, 1.1, 0.2], 0, 0, 0, 0, 1)               # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
+die1 = Dice([-999, 1, 1, 2, 1.1, 999], 1, 0, 1, 0, 2)              # attack die A: [-999, 1, 1, 2, 1.1, 999]   Z: [-999, -999, -999, 2, 1.1, 999]
+#die2 = Dice([0, 0, 0, 0.1, 1.1, 0.2], 0, 0, 0, 0, 1)               # phys_attack die B: [0, 1, 1, 1, 2, 2]      C: [1, 1, 1, 2, 2, 3]
 #die3 = Dice([0, 0, 0, 0.1, 1.1, 0.2])                             # mag_attack die D: [0, 0, 0, 0.1, 1.1, 0.2] E: [0, 1, 1.1, 0.1, 0.2, 0.2]
 #die4 = Dice([-999, -999, -999, 2, 1.1, 999], 1)
 
