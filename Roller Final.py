@@ -8,6 +8,7 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import re
 
 
 root = Tk()
@@ -62,13 +63,14 @@ def openResultWindow():                 #displaying result window
     global result_window
     result_window = Toplevel(root)
     result_window.title("Results")
-    Label(result_window, text='The average is: ' + str(Results.average)).grid(row=0, column=0)
+    Label(result_window, text='The expected result is: ' + str(round(result.totalsum / config.max_roll, 2)) +
+                        '   The average success is: ' + str(Results.average), font=(None, 10)).grid(row=0, column=0)
     if result.crit_divider != 0:
         Label(result_window, text='The highest critical streak was: ' + str(result.crit_chain) + ' at ' +
-                            str(int(max(Results.tally)))).grid(row=1, column=0)
+                            str(int(max(Results.tally))), font=(None, 10)).grid(row=1, column=0)
         Label(result_window, text='The average crit is: ' + str(Results.crit_average) + ' at ' +
-                            str(100 * round((result.crit_divider/config.max_roll), 2)) + '%').grid(row=2, column=0)
-    Button(result_window, text='Save Results', borderwidth=4, command=lambda: screenshot()).grid(row=4, column=0, columnspan=2)
+                            str(100 * round((result.crit_divider/config.max_roll), 2)) + '%', font=(None, 10)).grid(row=2, column=0)
+    Button(result_window, text='Save Results', borderwidth=4, font=(None, 10), command=lambda: screenshot()).grid(row=4, column=0, columnspan=2)
     result.graph()
     result.tally.clear()                #clearing results for next time
     result.misses = 0
@@ -277,7 +279,7 @@ def load():
 def char_length(i):  # limit only numbers and set max character limit
     if len(i) == 0:
         return True
-    elif len(i) < 4 and i.isdigit():
+    elif len(i) < 4 and (i.isdigit() or re.search('-+', i)):
         return True
     else:
         return False
@@ -382,6 +384,11 @@ for i in range(0, 10):  # creating entryboxes
     if i < 1:
         Entrybox_Widget.add_crit_entry(i)
         Entrybox_Widget.add_rolls_entry(i)
+Entrybox_Widget.Face_values[0].set('enter one number to roll a die of that size,')
+Entrybox_Widget.Face_values[1].set('or define each side of a custom die.')
+Entrybox_Widget.Face_values[2].set('-999 is a miss, 999 is a crit,')
+Entrybox_Widget.Face_values[3].set('and decimal points are skill points. Example:')
+Entrybox_Widget.Face_values[4].set('-999, 1, 1.1, 2, 0.3, 999')
 
 load_button = Button(Die_frame, text='Load Dice', command=lambda: load()).grid(row=12, column=4)
 save_button = Button(Die_frame, text='Save Dice', command=lambda: save()).grid(row=14, column=4, pady=(20, 0))
@@ -695,6 +702,14 @@ class Dice(object):
                     self.crit_resolver()
                 else:
                     Dice.sub_total += min_value
+    def skill_splitter(self):           #splits decimal points into separate skill pools
+        if face % 1 != 0:
+            iterator = 0
+            temp = face
+            while temp % 1 != 0:
+                skill_points[iterator] = round(((temp % 1) * 10) - ((temp % 1) * 10) % 1, 3)
+                temp = round(((temp % 1) * 10) % 1, 3)
+                iterator += 1
 
     @classmethod
     def crit_action(cls):
