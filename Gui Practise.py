@@ -15,17 +15,42 @@ root.title("Dice Roller")
 
 """GUI----START----GUI----START----GUI----START----GUI----START----GUI"""
 def openLoadWindow():         #seperate window for results
-    global load_window
     load_window = Toplevel(root)
     load_window.title("Results")
     Label(load_window, text="Rolling...").pack()
     load_window.grab_set()
-    global p
     p = Progressbar(load_window, orient=HORIZONTAL, length=200, mode="determinate", takefocus=True, maximum=config.max_roll)
     p.pack()
     cancel = Button(load_window, text='cancel', command=lambda: load_window.destroy())
     cancel.pack()
-    Dice.they_see_me_rollin()
+    progress = 0
+    for i in range(0, config.max_roll):
+        Dice.function_check = 0
+        Skills.depend = 0
+        Dice.crit_count = 0
+        if Dice.check_pool:
+            for x in Dice.check_pool:
+                Dice.check(x)
+            for x in Dice.s_s:
+                Dice.check_result(x)
+            if Dice.value != -999:
+                Dice.roll_lock = Dice.crit_count  # locking in amount of rolls
+                for x in Dice.dice_pool:
+                    Dice.roll(x)
+                for x in Skills.skill_pool:
+                    Skills.skill_spend(x)
+            Dice.roll_results()
+        else:
+            for x in Dice.dice_pool:
+                Dice.roll(x)
+            for x in Skills.skill_pool:
+                Skills.skill_spend(x)
+            Dice.roll_results()
+        progress += 1
+        if progress >= config.max_roll/10:
+            p.step(config.max_roll/10)
+            load_window.update()
+            progress = 0
     Dice.prepare_check = 0
     Results.format()
     Results.prepare()
@@ -37,12 +62,12 @@ def openResultWindow():
     global result_window
     result_window = Toplevel(root)
     result_window.title("Results")
-    Label(result_window, text="Tada!").pack()
-    Button(result_window, text='Save Results', command=lambda: screenshot()).pack()
+    Button(result_window, text='Save Results', command=lambda: screenshot()).grid(row=3, column=0)
     result.graph()
     result.tally.clear()        #clearing results for next run
     result.misses = 0
-    result.bar_dict.clear()
+    result.bar_dict1.clear()
+    result.bar_dict2.clear()
     result.average = 0
     result.totalsum = 0
     result.crit_total = 0
@@ -198,7 +223,7 @@ for i in range(0, 10):  # creating dependant checkboxes
     depend_objects.append(check)
     depend_values.append(value_inside)
 
-
+#carryover
 carry_check_label = Label(Skill_frame, text="point carry-over").grid(row=11, column=1, pady=(8, 0), columnspan=2)
 carry_check_value = []
 carry_check_inside = IntVar()
@@ -212,6 +237,20 @@ check_auto_graph = Checkbutton(Options_frame, variable=check_auto_graph_inside)
 check_auto_graph.grid(row=5, column=1)
 check_auto_graph_value.append(check_auto_graph_inside)
 check_auto_graph_value[0].set(1)
+check_graph1_label = Label(Options_frame, text="Graph 'n' or more").grid(row=6, column=0)
+check_graph1_inside = IntVar()
+check_graph1_value = []
+check_graph1 = Checkbutton(Options_frame, variable=check_graph1_inside)
+check_graph1.grid(row=6, column=1)
+check_graph1_value.append(check_graph1_inside)
+check_graph1_value[0].set(1)
+check_graph2_label = Label(Options_frame, text="Graph real").grid(row=7, column=0)
+check_graph2_inside = IntVar()
+check_graph2_value = []
+check_graph2 = Checkbutton(Options_frame, variable=check_graph2_inside)
+check_graph2.grid(row=7, column=1)
+check_graph2_value.append(check_graph2_inside)
+check_graph2_value[0].set(0)
 def save():                 #save and load function for dice entry-boxes
     savefile = {}
     for i in range(0, 10):
@@ -369,7 +408,7 @@ all_dropmenu.grid(row=0, column=4)
 drop_value_all.trace('w', lambda x, y, z: all_dropmenu_swap())    #trace needs 3 arguments, xyz are dummies
 
 
-test_button = Button(Options_frame, text='Start', command=lambda: execute()).grid(row=5, column=5)
+test_button = Button(Options_frame, text='Start', width=8, height=1, command=lambda: execute()).grid(row=7, column=5, rowspan=3)
 
 #faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0
 def show():  # test function
@@ -736,7 +775,8 @@ class Dice(object):
 
 class Results:
     tally = {}
-    bar_dict = {}
+    bar_dict1 = {}
+    bar_dict2 = {}
     average = 0
     crit_average = 0
 
@@ -754,25 +794,28 @@ class Results:
             start = min(Results.tally)
             stop = max(Results.tally)
             for i in range(int(start), int(stop+1)):
-                result.bar_dict[i] = 0
+                result.bar_dict1[i] = 0
+                result.bar_dict2[i] = 0
         else:
             for i in range(config.graph_start, config.graph_end + 1):
-                result.bar_dict[i] = 0
+                result.bar_dict1[i] = 0
+                result.bar_dict2[i] = 0
 
     def plot_points(self):                      #preparing plot points for bar graph
-        for x in result.bar_dict:
-            if result.state == 0:
+        if check_graph1_value[0].get():
+            for x in result.bar_dict1:
                 for y in result.tally.keys():
                     if y >= x:
-                        result.bar_dict[x] += result.tally[y]
-                result.bar_dict[x] = round((result.bar_dict[x] / config.max_roll) * 100, 2)
+                        result.bar_dict1[x] += result.tally[y]
+                result.bar_dict1[x] = round((result.bar_dict1[x] / config.max_roll) * 100, 2)
                 if min(Results.tally) <= 0:
-                    result.bar_dict[0] = round((result.misses / config.max_roll) * 100, 2)
-            elif result.state == 1:
-                for y in result.tally.keys():
-                    if y == x:
-                        result.bar_dict[x] = result.tally[y]
-                result.bar_dict[x] = round((result.bar_dict[x] / config.max_roll) * 100, 2)
+                    result.bar_dict1[0] = round((result.misses / config.max_roll) * 100, 2)
+        if check_graph2_value[0].get():
+            for a in result.bar_dict2:
+                for b in result.tally.keys():
+                    if b == a:
+                        result.bar_dict2[a] = result.tally[b]
+                result.bar_dict2[a] = round((result.bar_dict2[a] / config.max_roll) * 100, 2)
 
 
     @classmethod                             #preparing results
@@ -781,44 +824,45 @@ class Results:
         if result.crit_divider != 0:
             cls.crit_average = round(result.crit_total/result.crit_divider, 2)
 
-    def graph(self):                         #outputing bar graph
-        percentage = result.bar_dict.values()
-        damage = result.bar_dict.keys()
-        x = np.arange(len(damage))
-        width = 0.8
-        fig, ax = plt.subplots()
-        ax.set_ylabel('% chance')
-        ax.set_xlabel('n Damage or more')
-        ax.set_title('Damage chart')
-        ax.set_xticks(x, damage)
-        #ax.set_xticklabels(result.bar_dict.keys())
-        pps = ax.bar(x, percentage, width, label='% chance')
-        for p in pps:
-            height = p.get_height()
-            ax.annotate('{}'.format(height), xy=(p.get_x() + p.get_width() / 2, height), xytext=(0, 0),
-                        textcoords="offset points", ha='center', va='bottom', fontsize=9)
-        #plt.show()
-        chart_type = FigureCanvasTkAgg(fig, result_window)
-        chart_type.get_tk_widget().pack()
+    def graph(self):                         #outputing bar graph 1
+        if check_graph1_value[0].get():
+            percentage = result.bar_dict1.values()
+            damage = result.bar_dict1.keys()
+            x = np.arange(len(damage))
+            width = 0.8
+            fig, ax = plt.subplots()
+            ax.set_ylabel('% chance')
+            ax.set_xlabel('n or more')
+            #ax.set_title('Damage chart')
+            ax.set_xticks(x, damage)
+            pps = ax.bar(x, percentage, width, label='% chance')
+            for p in pps:
+                height = p.get_height()
+                ax.annotate('{}'.format(height), xy=(p.get_x() + p.get_width() / 2, height), xytext=(0, 0),
+                            textcoords="offset points", ha='center', va='bottom', fontsize=9)
+            chart_type = FigureCanvasTkAgg(fig, result_window)
+            chart_type.get_tk_widget().grid(row=1, column=0)
 
+        if check_graph2_value[0].get():        #outputing bar graph 2
+            print(result.bar_dict1)
+            print(result.bar_dict2)
+            percentage2 = result.bar_dict2.values()
+            damage2 = result.bar_dict2.keys()
+            x2 = np.arange(len(damage2))
+            width2 = 0.8
+            fig2, ax2 = plt.subplots()
+            ax2.set_ylabel('% chance')
+            ax2.set_xlabel('real')
+            #ax.set_title('Damage chart')
+            ax2.set_xticks(x2, damage2)
+            pps2 = ax2.bar(x2, percentage2, width2, label='% chance')
+            for p in pps2:
+                height = p.get_height()
+                ax2.annotate('{}'.format(height), xy=(p.get_x() + p.get_width() / 2, height), xytext=(0, 0),
+                            textcoords="offset points", ha='center', va='bottom', fontsize=9)
+            chart_type2 = FigureCanvasTkAgg(fig2, result_window)
+            chart_type2.get_tk_widget().grid(row=1, column=1)
 
-#def set_dice(self, **kwargs):            #Dice attribute setter
-#    for x, y in kwargs.items():
-#        set_dice(self, x, y)
-
-#config = Settings()
-#result = Results()
-#test_die = Dice([1, 2, 3, 4, 5, 6])
-#Dice.prepare()
-#Dice.they_see_me_rollin()           #rolling
-#Dice.prepare_check = 0
-
-#Results.format()                    #preparing results
-
-#print('the average is: ' + str(Results.average))
-#print('highest streak is: ' + str(result.crit_chain) + ' at ' + str((max(Results.tally))))
-#result.plot_points()                #preparing graph plot points
-#result.graph()                      #output graph
 
 load()
 
