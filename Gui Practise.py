@@ -58,13 +58,19 @@ def openLoadWindow():         #seperate window for results
     load_window.destroy()
     openResultWindow()
 
-def openResultWindow():
+def openResultWindow():                 #displaying result window
     global result_window
     result_window = Toplevel(root)
     result_window.title("Results")
-    Button(result_window, text='Save Results', command=lambda: screenshot()).grid(row=3, column=0)
+    Label(result_window, text='The average is: ' + str(Results.average)).grid(row=0, column=0)
+    if result.crit_divider != 0:
+        Label(result_window, text='The highest critical streak was: ' + str(result.crit_chain) + ' at ' +
+                            str(int(max(Results.tally)))).grid(row=1, column=0)
+        Label(result_window, text='The average crit is: ' + str(Results.crit_average) + ' at ' +
+                            str(100 * round((result.crit_divider/config.max_roll), 2)) + '%').grid(row=2, column=0)
+    Button(result_window, text='Save Results', borderwidth=4, command=lambda: screenshot()).grid(row=4, column=0, columnspan=2)
     result.graph()
-    result.tally.clear()        #clearing results for next run
+    result.tally.clear()                #clearing results for next time
     result.misses = 0
     result.bar_dict1.clear()
     result.bar_dict2.clear()
@@ -466,8 +472,6 @@ def execute():              #any dice that can miss become primary
     fill_skillpool()
     config_settings()
     Dice.prepare()
-    #print(Dice.dice_pool)
-    #print(Dice.check_pool[0].faces)
     openLoadWindow()
 
 
@@ -595,32 +599,7 @@ class Dice(object):
             Dice.check_pool.append(self)
             Dice.dice_pool_copy.remove(self)
 
-    @classmethod                                        #the rolling function
-    def they_see_me_rollin(cls):
-        for i in range(0, config.max_roll):
-            Dice.function_check = 0
-            Skills.depend = 0
-            Dice.crit_count = 0
-            if Dice.check_pool:
-                for x in Dice.check_pool:
-                    Dice.check(x)
-                for x in Dice.s_s:
-                    Dice.check_result(x)
-                if Dice.value != -999:
-                    Dice.roll_lock = Dice.crit_count             #locking in amount of rolls
-                    for x in Dice.dice_pool:
-                        Dice.roll(x)
-                    for x in Skills.skill_pool:
-                        Skills.skill_spend(x)
-                Dice.roll_results()
-            else:
-                for x in Dice.dice_pool:
-                    Dice.roll(x)
-                for x in Skills.skill_pool:
-                    Skills.skill_spend(x)
-                Dice.roll_results()
-        p.step()
-        load_window.update()
+
     def check(self):                                #rolling primary dice
         if self.primary != 1:
             return
@@ -833,7 +812,6 @@ class Results:
             fig, ax = plt.subplots()
             ax.set_ylabel('% chance')
             ax.set_xlabel('n or more')
-            #ax.set_title('Damage chart')
             ax.set_xticks(x, damage)
             pps = ax.bar(x, percentage, width, label='% chance')
             for p in pps:
@@ -841,11 +819,9 @@ class Results:
                 ax.annotate('{}'.format(height), xy=(p.get_x() + p.get_width() / 2, height), xytext=(0, 0),
                             textcoords="offset points", ha='center', va='bottom', fontsize=9)
             chart_type = FigureCanvasTkAgg(fig, result_window)
-            chart_type.get_tk_widget().grid(row=1, column=0)
+            chart_type.get_tk_widget().grid(row=3, column=0)
 
         if check_graph2_value[0].get():        #outputing bar graph 2
-            print(result.bar_dict1)
-            print(result.bar_dict2)
             percentage2 = result.bar_dict2.values()
             damage2 = result.bar_dict2.keys()
             x2 = np.arange(len(damage2))
@@ -853,7 +829,6 @@ class Results:
             fig2, ax2 = plt.subplots()
             ax2.set_ylabel('% chance')
             ax2.set_xlabel('real')
-            #ax.set_title('Damage chart')
             ax2.set_xticks(x2, damage2)
             pps2 = ax2.bar(x2, percentage2, width2, label='% chance')
             for p in pps2:
@@ -861,7 +836,7 @@ class Results:
                 ax2.annotate('{}'.format(height), xy=(p.get_x() + p.get_width() / 2, height), xytext=(0, 0),
                             textcoords="offset points", ha='center', va='bottom', fontsize=9)
             chart_type2 = FigureCanvasTkAgg(fig2, result_window)
-            chart_type2.get_tk_widget().grid(row=1, column=1)
+            chart_type2.get_tk_widget().grid(row=3, column=1)
 
 
 load()
