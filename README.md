@@ -9,7 +9,8 @@ to do:
     ~~skill point carry-over check (in Dice.check())~~
     ~~save entries~~
     ~~automatic graph range~~
-    extra stats on output
-    'n exact'/'n or more' toggle
-    save-screen function
+    ~~extra stats on output~~
+    ~~'n exact'/'n or more' toggle~~
+    ~~save-screen function~~
+    make multiple skill-point pools
 
