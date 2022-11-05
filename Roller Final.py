@@ -25,7 +25,7 @@ def openLoadWindow():         #seperate window for results
     cancel = Button(load_window, text='cancel', command=lambda: load_window.destroy())
     cancel.pack()
     progress = 0
-    for i in range(0, config.max_roll):
+    for i in range(0, config.max_roll):             # rolling dice
         Dice.function_check = 0
         Skills.depend = 0
         Dice.crit_count = 0
@@ -35,17 +35,24 @@ def openLoadWindow():         #seperate window for results
             for x in Dice.s_s:
                 Dice.check_result(x)
             if Dice.value != -999:
-                Dice.roll_lock = Dice.crit_count  # locking in amount of rolls
+                Dice.roll_lock = Dice.crit_count    # locking in amount of rolls
                 for x in Dice.dice_pool:
                     Dice.roll(x)
                 for x in Skills.skill_pool:
                     Skills.skill_spend(x)
             Dice.roll_results()
         else:
+            temp_skill = Dice.skill_count
+            Dice.miss = 0
             for x in Dice.dice_pool:
                 Dice.roll(x)
-            for x in Skills.skill_pool:
-                Skills.skill_spend(x)
+            if Dice.miss != 1:
+                for x in Skills.skill_pool:
+                    Skills.skill_spend(x)
+            else:
+                Dice.skill_count = temp_skill
+                result.misses += 1
+                Dice.sub_total = 0
             Dice.roll_results()
         progress += 1
         if progress >= config.max_roll/10:
@@ -573,6 +580,7 @@ class Dice(object):
     prepare_check = 0
     function_check = 0
     value = 0
+    miss = 0
 
     def __init__(self, faces, primary=0, crit_behavior=0, crit_value=1, state=0, amount=1, weight=0):
         self.faces = faces
@@ -668,6 +676,8 @@ class Dice(object):
     def state_resolver(self):
         if self.state == 0:                     #sum of all rolled values
             for x in Dice.temp_roll:
+                if x == -999:
+                    Dice.miss = 1
                 if (x % 1) != 0:
                     temp = (x % 1)
                     Dice.skill_count += (temp * 10)
@@ -680,6 +690,8 @@ class Dice(object):
                         Dice.sub_total += x
         if self.state == 1:                     #max of all rolled values
             max_value = max(Dice.temp_roll)
+            if max_value == -999:
+                Dice.value = -999
             if (max_value % 1) != 0:
                 temp = (max_value % 1)
                 Dice.skill_count += (temp * 10)
@@ -692,6 +704,8 @@ class Dice(object):
                     Dice.sub_total += max_value
         if self.state == 2:                     #min of all rolled values
             min_value = min(Dice.temp_roll)
+            if min_value == -999:
+                Dice.value = -999
             if (min_value % 1) != 0:
                 temp = (min_value % 1)
                 Dice.skill_count += (temp * 10)
@@ -702,14 +716,13 @@ class Dice(object):
                     self.crit_resolver()
                 else:
                     Dice.sub_total += min_value
-    def skill_splitter(self):           #splits decimal points into separate skill pools
-        if face % 1 != 0:
-            iterator = 0
-            temp = face
-            while temp % 1 != 0:
-                skill_points[iterator] = round(((temp % 1) * 10) - ((temp % 1) * 10) % 1, 3)
-                temp = round(((temp % 1) * 10) % 1, 3)
-                iterator += 1
+    def skill_splitter(decimals):           #splits decimal points into separate skill pools
+        iterator = 0
+        temp = decimals
+        while temp % 1 != 0:
+            skill_points[iterator] = round(((temp % 1) * 10) - ((temp % 1) * 10) % 1, 3)
+            temp = round(((temp % 1) * 10) % 1, 3)
+            iterator += 1
 
     @classmethod
     def crit_action(cls):
