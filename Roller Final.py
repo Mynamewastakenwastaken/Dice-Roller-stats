@@ -29,6 +29,8 @@ def openLoadWindow():         #seperate window for results
         Dice.function_check = 0
         Skills.depend = 0
         Dice.crit_count = 0
+        if carry_check_value[0].get() == 0:
+            Dice.skill_count = 0
         if Dice.check_pool:
             for x in Dice.check_pool:
                 Dice.check(x)
@@ -622,8 +624,6 @@ class Dice(object):
             if Dice.function_check != 1:
                 Dice.function_check = 1
                 Dice.sub_total = 0
-                if carry_check_value[0].get() == 0:
-                    Dice.skill_count = 0
                 Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
@@ -638,8 +638,6 @@ class Dice(object):
             if Dice.function_check != 1:
                 Dice.function_check = 1
                 Dice.sub_total = 0
-                if carry_check_value[0].get() == 0:
-                    Dice.skill_count = 0
                 Dice.crit_count = 0
                 Dice.s_s.clear()
                 Dice.s_s.append(self)
@@ -815,8 +813,11 @@ class Results:
                     if y >= x:
                         result.bar_dict1[x] += result.tally[y]
                 result.bar_dict1[x] = round((result.bar_dict1[x] / config.max_roll) * 100, 2)
-                if min(Results.tally) <= 0:
+            if min(Results.tally) == 0:
+                if result.misses > 0:
                     result.bar_dict1[0] = round((result.misses / config.max_roll) * 100, 2)
+                else:
+                    result.bar_dict1[0] = round(Results.tally.get(0) / config.max_roll * 100, 2)
         if check_graph2_value[0].get():
             for a in result.bar_dict2:
                 for b in result.tally.keys():
