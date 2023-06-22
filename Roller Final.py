@@ -868,6 +868,6 @@ class Results:
             chart_type2.get_tk_widget().grid(row=3, column=1)
 
 
-load()
+#load()
 
 mainloop()
